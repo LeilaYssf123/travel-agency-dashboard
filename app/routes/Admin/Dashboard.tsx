@@ -1,9 +1,10 @@
 import { Header, StatsCard, TripCard } from "../../../Componenets";
 import { dashboardStats, user, allTrips } from "~/constants";
+import {getUser} from "~/appwrite/auth";
+import type  {Route} from './+types/Dashboard';
+const { totalUsers, usersJoined, totalTrips, tripsCreated, userRole } = dashboardStats;
 
-const Dashboard = () => {
-    const { totalUsers, usersJoined, totalTrips, tripsCreated, userRole } = dashboardStats;
-
+const Dashboard = ({ loaderData }: Route.ComponentProps ) => {
     return (
         <main className="dashboard wrapper min-h-screen flex">
             <div className="w-full max-w-6xl mx-auto p-6 ml-32"> {/* Augmenté à ml-32 pour plus de décalage */}
