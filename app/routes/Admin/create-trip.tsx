@@ -2,14 +2,14 @@ import { Header } from "../../../Componenets";
 import { ComboBox } from "@syncfusion/ej2-dropdowns";
 import { ComboBoxComponent } from "@syncfusion/ej2-react-dropdowns";
 import type { Route } from "./+types/create-trip";
-import {comboBoxItems, selectItems} from "~/constants";
-import {cn, formatKey} from "~/lib/utils";
-import {LayerDirective, LayersDirective, MapsComponent} from "@syncfusion/ej2-react-maps";
-import {useState} from "react";
-import {world_map} from "~/constants/world_map";
-import {ButtonComponent} from "@syncfusion/ej2-react-buttons";
-import {account} from "~/appwrite/client";
-import {useNavigate} from "react-router";
+import { comboBoxItems, selectItems } from "~/constants";
+import { cn, formatKey } from "~/lib/utils";
+import { LayerDirective, LayersDirective, MapsComponent } from "@syncfusion/ej2-react-maps";
+import { useState } from "react";
+import { world_map } from "~/constants/world_map";
+import { ButtonComponent } from "@syncfusion/ej2-react-buttons";
+import { account } from "~/appwrite/client";
+import { useNavigate } from "react-router";
 
 export const loader = async () => {
     try {
@@ -29,93 +29,103 @@ export const loader = async () => {
         }));
     } catch (error) {
         console.error('Error loading countries:', error);
-        return []; // Retourne un tableau vide en cas d'erreur pour éviter l'erreur
+        return [];
     }
 };
 
 const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
     const countries = loaderData as Country[];
-    const navigate= useNavigate();
-    const[formData, setFormData] = useState<TripFormData>({
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState<TripFormData>({
         country: countries[0]?.name || '',
-        travelStyle:'',
-        interest:'',
-        budget:'',
-        duration:0,
-        groupType:''
+        travelStyle: '',
+        interest: '',
+        budget: '',
+        duration: 0,
+        groupType: ''
     });
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e:React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
         setLoading(true);
-        if(
+        if (
             !formData.country ||
             !formData.travelStyle ||
             !formData.interest ||
             !formData.budget ||
             !formData.groupType
-        ){
+        ) {
             setError('Please provide values for all fields');
-            setLoading(false)
+            setLoading(false);
             return;
         }
-        if(formData.duration < 1 || formData.duration > 10){
-            setError('Duration must be between 1 and 10 days ');
-            setLoading(false)
+        if (formData.duration < 1 || formData.duration > 10) {
+            setError('Duration must be between 1 and 10 days');
+            setLoading(false);
             return;
         }
-        const user =await account.get();
-        if(!user.$id){
-            console.error("user not authenticated.");
-            setLoading(false)
+        const user = await account.get();
+        if (!user.$id) {
+            console.error("User not authenticated.");
+            setLoading(false);
             return;
-
         }
         try {
-            const response = await fetch('/api/create-trip',
-                {
+            const requestData = {
+                country: formData.country,
+                numberOfDays: formData.duration,
+                travelStyle: formData.travelStyle,
+                interests: formData.interest,
+                budget: formData.budget,
+                groupType: formData.groupType,
+                accountId: user.$id
+            };
+            console.log('Données envoyées à l\'API :', JSON.stringify(requestData, null, 2));
+            const response = await fetch('/api/create-trip', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    country: formData.country,
-                    numberOfDays: formData.duration,
-                    travelStyle: formData.travelStyle,
-                    interests: formData.interest,
-                    budget: formData.budget,
-                    groupType: formData.groupType,
-                    userId: user.$id
-                })
-            })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
 
-            const result: CreateTripResponse = await response.json();
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Erreur API reçue (statut :', response.status, '):', errorText);
+                setError('Erreur serveur : ' + errorText);
+                return;
+            }
 
-            if(result?.id) navigate(`/trips/${result.id}`)
-            else console.error('Failed to generate a trip')
-
-        } catch (e){
-            console.error('Error generating trip',e);
+            const result = await response.json();
+            console.log('Réponse de l\'API :', JSON.stringify(result, null, 2));
+            if (result?.id) navigate(`/trips/${result.id}`);
+            else {
+                console.error('Aucun ID reçu dans la réponse :', result);
+                setError('Failed to generate travel plan');
+            }
+        } catch (e) {
+            console.error('Erreur dans la requête :', e);
+            setError('Erreur inattendue : vérifiez le serveur');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-
     };
-    const handleChange = (key: keyof TripFormData, value: string | number) => {
-       setFormData({...formData, [key]: value});
-    }
 
+    const handleChange = (key: keyof TripFormData, value: string | number) => {
+        setFormData({ ...formData, [key]: value });
+    };
 
     const countryData = countries.map((country) => ({
         text: country.name,
         value: country.value,
     }));
-    const mapData= [
+    const mapData = [
         {
-          country: formData.country,
-            color:'#EA382E',
-            coordinates: countries.find((c: Country)=> c.name==formData.country)?. coordinates || []}
-    ]
+            country: formData.country,
+            color: '#EA382E',
+            coordinates: countries.find((c: Country) => c.name === formData.country)?.coordinates || []
+        }
+    ];
 
     return (
         <main className="flex flex-col gap-10 pb-20 wrapper">
@@ -152,44 +162,45 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
                     <div>
                         <label htmlFor="Duration">Duration</label>
                         <input
-                        id="duration"
-                        name="duration"
-                        type="number"
-                        placeholder="Enter a number of days"
-                        className="form-input placeholder:text-gray-100"
-                        onChange={(e) =>
-                            handleChange( 'duration',Number(e.target.value))}
+                            id="duration"
+                            name="duration"
+                            type="number"
+                            placeholder="Enter a number of days"
+                            className="form-input placeholder:text-gray-100"
+                            onChange={(e) =>
+                                handleChange('duration', Number(e.target.value))
+                            }
                         />
                     </div>
-                    {selectItems.map((key)=>(
+                    {selectItems.map((key) => (
                         <div key={key}>
-                            <label htmlFor={key} >{formatKey(key)}</label>
+                            <label htmlFor={key}>{formatKey(key)}</label>
                             <ComboBoxComponent
-                              id={key}
-                              dataSource={comboBoxItems[key].map((item)=>({
-                                  text: item,
-                                  value: item,
-                              }))}
-                              fields={{text:'text', value: 'value'}}
-                              placeholder={`select ${formatKey(key)}`}
-
-                              change={(e: { value: string | undefined }) => {
-                                  if(e.value) {
-                                      handleChange(key, e.value)
-                                  }
-                              }}
-                              allowFiltering
-                              filtering={(e) => {
-                                  const query = e.text.toLowerCase();
-
-                                  e.updateData(
-                                      comboBoxItems[key]
-                                          .filter((item) => item.toLowerCase().includes(query))
-                                          .map(((item) => ({
-                                              text: item,
-                                              value: item,
-                                          }))))}}
-                              className="combo-box"
+                                id={key}
+                                dataSource={comboBoxItems[key].map((item) => ({
+                                    text: item,
+                                    value: item,
+                                }))}
+                                fields={{ text: 'text', value: 'value' }}
+                                placeholder={`select ${formatKey(key)}`}
+                                change={(e: { value: string | undefined }) => {
+                                    if (e.value) {
+                                        handleChange(key, e.value);
+                                    }
+                                }}
+                                allowFiltering
+                                filtering={(e) => {
+                                    const query = e.text.toLowerCase();
+                                    e.updateData(
+                                        comboBoxItems[key]
+                                            .filter((item) => item.toLowerCase().includes(query))
+                                            .map((item) => ({
+                                                text: item,
+                                                value: item,
+                                            }))
+                                    );
+                                }}
+                                className="combo-box"
                             />
                         </div>
                     ))}
@@ -198,37 +209,38 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
                             location on the world map
                         </label>
                         <MapsComponent>
-                           <LayersDirective>
-                               <LayerDirective
-                                   shapeData={world_map}
-                                   dataSource={mapData}
-                                   shapePropertyPath="name"
-                                   shapeDataPath="country"
-                                   shapeSettings={{ colorValuePath:'color',fill:'#e5e5e5'}}
-
-                               />
-                           </LayersDirective>
+                            <LayersDirective>
+                                <LayerDirective
+                                    shapeData={world_map}
+                                    dataSource={mapData}
+                                    shapePropertyPath="name"
+                                    shapeDataPath="country"
+                                    shapeSettings={{ colorValuePath: 'color', fill: '#e5e5e5' }}
+                                />
+                            </LayersDirective>
                         </MapsComponent>
                     </div>
 
-                    <div className="bg-gray-200 h-px w-full"/>
-                    {error &&(
+                    <div className="bg-gray-200 h-px w-full" />
+                    {error && (
                         <div className="error">
                             <p>{error}</p>
                         </div>
                     )}
                     <footer className="px-6 w-full">
-                        <ButtonComponent type="submit"
+                        <ButtonComponent
+                            type="submit"
                             className="button-class !h-12 !w-full"
-                             disabled={loading}
+                            disabled={loading}
                         >
-                            <img src={`/assets/icons/${loading ? 'loader.svg':'magic-star.svg'}`} className={cn("size-5",{'animate-spin':loading})}/>
+                            <img
+                                src={`/assets/icons/${loading ? 'loader.svg' : 'magic-star.svg'}`}
+                                className={cn("size-5", { 'animate-spin': loading })}
+                            />
                             <span className="p-16-seimbold text-white">
-                               {loading ? 'Loading...' : 'Generate Trip'}
+                                {loading ? 'Loading...' : 'Generate Trip'}
                             </span>
-
                         </ButtonComponent>
-
                     </footer>
                 </form>
             </section>

@@ -8,5 +8,6 @@ export default [
         route('All-users','routes/Admin/All-users.tsx'),
         route('trips','routes/Admin/trips.tsx'),
         route('trips/create','routes/Admin/create-trip.tsx'),
+        route('trips/:tripId','routes/Admin/trip-detail.tsx'),
 ]),
 ] satisfies RouteConfig;
